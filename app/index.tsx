@@ -5,8 +5,8 @@ export default function Index() {
   return (
     <View style={styles.container}>
        <ShoppingListItem name="coffee" />
-       <ShoppingListItem name="Tea" />
-       <ShoppingListItem name="Sugar" />
+       <ShoppingListItem name="Tea" isCompleted />
+       <ShoppingListItem name="Sugar" isCompleted />
     </View>
   );
 }
