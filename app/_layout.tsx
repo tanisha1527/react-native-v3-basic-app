@@ -14,6 +14,7 @@ export default function RootLayout() {
         }
         }}/>
         <Tabs.Screen name="counter" options={{title: "counter",
+        headerShown: false,
           tabBarIcon: ({ color, size }) =>{
             return <Feather name="clock" size={size} color={color} />
           }
