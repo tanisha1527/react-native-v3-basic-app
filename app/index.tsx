@@ -7,6 +7,8 @@ import { StyleSheet, TextInput, FlatList, View, Text } from "react-native";
 type ShoppingListItemType = {
   id: string;
   name: string;
+  completedAtTimeStamp?: number;
+  lastUpdatedTimeStamp: number;
 }
 
 export default function Index() {
@@ -16,7 +18,7 @@ export default function Index() {
   const handleSubmit = () => {
     if (Value) {
       const newShoppingList = [
-        { id: new Date().toTimeString(), name: Value },
+        { id: new Date().toTimeString(), name: Value, lastUpdatedTimeStamp: Date.now() },
         ...shoppingList,
       ];
       setShoppingList(newShoppingList);
@@ -30,9 +32,24 @@ export default function Index() {
         setShoppingList(newShoppingList);
   }
 
+  const handleToggleComplete = (id: string) => {
+        const newShoppingList = shoppingList.map((item) => {
+           if (item.id == id) {
+              return {
+                 ...item,
+                 lastUpdatedTimeStamp: Date.now(),
+                 completedAtTimeStamp: item.completedAtTimeStamp ? 
+                 undefined : Date.now(),
+              }
+           }
+           return item;
+        })
+        setShoppingList(newShoppingList);
+  }
+
   return (
     <FlatList
-     data={shoppingList}
+     data={orderShoppingList(shoppingList)}
      style={styles.container}
      contentContainerStyle={styles.contentContainer}
      stickyHeaderIndices={[0]}
@@ -53,10 +70,34 @@ export default function Index() {
       renderItem={({item}) => {
          return <ShoppingListItem 
           name={item.name}
-          onDelete={() => handleDelete(item.id) } />
+          onDelete={() => handleDelete(item.id) }
+          onToggleComplete={() => handleToggleComplete(item.id)}
+          isCompleted={Boolean(item.completedAtTimeStamp)} />
       }}
     />
   );
+}
+
+function orderShoppingList(shoppingList: ShoppingListItemType[]) {
+  return shoppingList.sort((item1, item2) => {
+    if (item1.completedAtTimeStamp && item2.completedAtTimeStamp) {
+      return item2.completedAtTimeStamp - item1.completedAtTimeStamp;
+    }
+
+    if (item1.completedAtTimeStamp && !item2.completedAtTimeStamp) {
+      return 1;
+    }
+
+    if (!item1.completedAtTimeStamp && item2.completedAtTimeStamp) {
+      return -1;
+    }
+
+    if (!item1.completedAtTimeStamp && !item2.completedAtTimeStamp) {
+      return item2.lastUpdatedTimeStamp - item1.lastUpdatedTimeStamp;
+    }
+
+    return 0;
+  });
 }
 
 
@@ -64,7 +105,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    padding: 12,
+    paddingVertical: 12,
   },
   contentContainer: {
     paddingTop: 18,
