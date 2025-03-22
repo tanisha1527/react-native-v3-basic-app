@@ -6,9 +6,10 @@ import Entypo from "@expo/vector-icons/Entypo";
 type Props = {
     name: string;
     isCompleted?: boolean;
+    onDelete: () => void;
 }
 
-export function ShoppingListItem({ name, isCompleted }: Props) {
+export function ShoppingListItem({ name, isCompleted, onDelete }: Props) {
     const handleDelete = () => {
         Alert.alert("Delete Item", `Are you sure you want to delete ${name}?`, [
             {
@@ -18,7 +19,7 @@ export function ShoppingListItem({ name, isCompleted }: Props) {
             },
             {
                 text: "YES",
-                onPress: () => console.log("OK Pressed"),
+                onPress: () => onDelete(),
             },
         ]);
     }
