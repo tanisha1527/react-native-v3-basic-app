@@ -13,11 +13,11 @@ export default function CounterScreen() {
                  content: {
                     title: "I'm a notification from your app! 📨",
                  },
-                 trigger: {                                                                                                    
-                    seconds: 2,
-                 },
-            });
-        } else {
+                 trigger: {
+					seconds: 5, 
+				} as Notifications.TimeIntervalTriggerInput, 
+			});
+		} else {
             if (Device.isDevice) {
                  Alert.alert(
                        "Unable to schedule notification",
