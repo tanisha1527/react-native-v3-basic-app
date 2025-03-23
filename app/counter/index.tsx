@@ -10,9 +10,9 @@ import { getFromStorage, saveToStorage } from "@/Utils/storage";
 
 const frequency = 10 * 1000;
 
-const countdownStorageKey = "learning:countdown";
+export const countdownStorageKey = "learning:countdown";
 
-type persistedCountdownState = {
+export type persistedCountdownState = {
     currentNotificationId: string | undefined;
     completedAtTimestamp: number[];
 }
