@@ -1,8 +1,15 @@
 import { ShoppingListItem } from "@/components/ShoppingListItem";
 import { theme } from "@/theme";
-import { getFromStorage,saveToStorage } from "@/Utils/storage";
+import { getFromStorage, saveToStorage } from "@/Utils/storage";
 import { useEffect, useState } from "react";
-import { StyleSheet, TextInput, FlatList, View, Text } from "react-native";
+import {
+  StyleSheet,
+  TextInput,
+  FlatList,
+  View,
+  Text,
+} from "react-native";
+import * as Haptics from "expo-haptics";
 
 
 const storageKey = "shopping-list";
@@ -19,13 +26,13 @@ export default function Index() {
   const [Value, setValue] = useState("");
 
   useEffect(() => {
-      const fetchInitial = async () => {
-         const data = await getFromStorage(storageKey);
-          if (data) {
-              setShoppingList(data);
-          }
-      };
-      fetchInitial();
+    const fetchInitial = async () => {
+      const data = await getFromStorage(storageKey);
+      if (data) {
+        setShoppingList(data);
+      }
+    };
+    fetchInitial();
   }, []);
 
   const handleSubmit = () => {
@@ -42,50 +49,56 @@ export default function Index() {
   };
 
   const handleDelete = (id: string) => {
-        const newShoppingList = shoppingList.filter((item) => item.id !== id);
-        setShoppingList(newShoppingList);
+    const newShoppingList = shoppingList.filter((item) => item.id !== id);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setShoppingList(newShoppingList);
   }
 
   const handleToggleComplete = (id: string) => {
-        const newShoppingList = shoppingList.map((item) => {
-           if (item.id == id) {
-              return {
-                 ...item,
-                 lastUpdatedTimeStamp: Date.now(),
-                 completedAtTimeStamp: item.completedAtTimeStamp ? 
-                 undefined : Date.now(),
-              }
-           }
-           return item;
-        })
-        saveToStorage(storageKey, newShoppingList);
-        setShoppingList(newShoppingList);
+    const newShoppingList = shoppingList.map((item) => {
+      if (item.id == id) {
+        if (item.completedAtTimeStamp){
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        } else {
+           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+        return {
+          ...item,
+          lastUpdatedTimeStamp: Date.now(),
+          completedAtTimeStamp: item.completedAtTimeStamp ?
+            undefined : Date.now(),
+        }
+      }
+      return item;
+    });
+    saveToStorage(storageKey, newShoppingList);
+    setShoppingList(newShoppingList);
   }
 
   return (
     <FlatList
-     data={orderShoppingList(shoppingList)}
-     style={styles.container}
-     contentContainerStyle={styles.contentContainer}
-     stickyHeaderIndices={[0]}
-     ListEmptyComponent={
-       <View style={styles.listEmptyContainer}>
+      data={orderShoppingList(shoppingList)}
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      stickyHeaderIndices={[0]}
+      ListEmptyComponent={
+        <View style={styles.listEmptyContainer}>
           <Text>Your shopping list is empty</Text>
-       </View>
-     }
-     ListHeaderComponent={
-      <TextInput placeholder="E.g. coffee"
-       style={styles.textInput} 
-       value={Value}
-       onChangeText={setValue}
-       returnKeyType="done"
-       onSubmitEditing={handleSubmit} 
-      />
-    }
-      renderItem={({item}) => {
-         return <ShoppingListItem 
+        </View>
+      }
+      ListHeaderComponent={
+        <TextInput placeholder="E.g. coffee"
+          style={styles.textInput}
+          value={Value}
+          onChangeText={setValue}
+          returnKeyType="done"
+          onSubmitEditing={handleSubmit}
+        />
+      }
+      renderItem={({ item }) => {
+        return <ShoppingListItem
           name={item.name}
-          onDelete={() => handleDelete(item.id) }
+          onDelete={() => handleDelete(item.id)}
           onToggleComplete={() => handleToggleComplete(item.id)}
           isCompleted={Boolean(item.completedAtTimeStamp)} />
       }}
