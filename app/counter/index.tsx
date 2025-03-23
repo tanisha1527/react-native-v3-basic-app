@@ -1,13 +1,21 @@
 import { theme } from "@/theme";
 import { registerForPushNotificationsAsync } from "@/Utils/registerForPushNotificationsAsync";
-import { Text, View, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import { Text, View, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { useEffect, useState } from "react";
 import { Duration, isBefore, intervalToDuration } from "date-fns";
 import { TimeSegment } from "@/components/TimeSegment";
+import { getFromStorage, saveToStorage } from "@/Utils/storage";
 
-const timeStamp = Date.now() + 1000;
+const frequency = 10 * 1000;
+
+const countdownStorageKey = "learning:countdown";
+
+type persistedCountdownState = {
+    currentNotificationId: string | undefined;
+    completedAtTimestamp: number[];
+}
 
 type CountdownStatus = {
      isOverdue: boolean;
@@ -15,19 +23,37 @@ type CountdownStatus = {
 }
 
 export default function CounterScreen() {
+    const [isLoading, setIsLoading] = useState(true);
+    const [countdownState, setCountdownState] = useState<persistedCountdownState>();
 
     const [status, setStatus] = useState<CountdownStatus>({
          isOverdue: false,
          distance: {},
-    })
+    });
 
-    console.log(status);
+    useEffect(() => {
+        const init = async () => {
+            const value = await getFromStorage(countdownStorageKey);
+            setCountdownState(value);
+        };
+        init();
+    }, [])
+
+    const lastCompleteAt = countdownState?.completedAtTimestamp?.[0];
+
 
     useEffect(() => {
        const interval = setInterval(()=> {
+            const timeStamp = lastCompleteAt 
+            ? lastCompleteAt + frequency 
+            : Date.now();
+            if (lastCompleteAt){
+                setIsLoading(false);
+            }
              const isOverdue = isBefore(timeStamp, Date.now());
              const distance = intervalToDuration(
-                 isOverdue ? { start: timeStamp, end: Date.now()} : {
+                 isOverdue ? { start: timeStamp,
+                     end: Date.now()} : {
                     start: Date.now(), end: timeStamp,
                  }
              )
@@ -36,17 +62,19 @@ export default function CounterScreen() {
         return () => {
             clearInterval(interval);
         };
-    }, [])
+    }, [lastCompleteAt])
 
     const scheduleNotification = async () => {
+
+        let pushNotificationId;
         const result = await registerForPushNotificationsAsync();
         if (result === "granted") {
-            await Notifications.scheduleNotificationAsync({
+            pushNotificationId = await Notifications.scheduleNotificationAsync({
                  content: {
-                    title: "I'm a notification from your app! 📨",
+                    title: "The thing is due!",
                  },
                  trigger: {
-					seconds: 5, 
+					seconds: frequency / 1000, 
 				} as Notifications.TimeIntervalTriggerInput, 
 			});
 		} else {
@@ -57,8 +85,28 @@ export default function CounterScreen() {
                      );
             }
     };
+    if (countdownState?.currentNotificationId) {
+        await Notifications.cancelScheduledNotificationAsync(countdownState.currentNotificationId);
+    }
+
+    const newCountdownState: persistedCountdownState = {
+        currentNotificationId: pushNotificationId,
+        completedAtTimestamp: countdownState? 
+        [Date.now(), ...countdownState.completedAtTimestamp] 
+        : [Date.now()],
+    }
+    setCountdownState(newCountdownState);
+    await saveToStorage(countdownStorageKey, newCountdownState);
 
 }
+   
+    if (isLoading) {
+        return (
+            <View style={styles.activityIndicatorContainer}>
+                <ActivityIndicator />
+            </View>
+           )
+    }
 
     return (
         <View style={[styles.container, status.isOverdue ? styles.containerLate : undefined, ]}>
@@ -112,4 +160,10 @@ const styles = StyleSheet.create({
     whiteText: {
         color: theme.colorWhite,
     },
+    activityIndicatorContainer:{
+        backgroundColor: theme.colorWhite,
+        justifyContent: "center",
+        alignItems: "center",
+        flex: 1,
+    }
 });
